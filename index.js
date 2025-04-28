@@ -36,9 +36,25 @@ client
   });
 
 app.get("/clientes", async (req, res) => {
-  res.json({
-    message: "Rota de clientes",
-  });
+  const result = await client.query("SELECT * FROM clientes");
+
+  res.json(result.rows);
+});
+
+app.post("/clientes", async (req, res) => {
+  const { nome, email, telefone } = req.body;
+
+  try {
+    await client.query(
+      "INSERT INTO clientes (nome, email, telefone) VALUES ($1, $2, $3)",
+      [nome, email, telefone]
+    );
+
+    res.status(201).json({ message: "Cliente criado com sucesso" });
+  } catch (error) {
+    console.error("Erro ao criar cliente:", error);
+    res.status(500).json({ message: "Erro ao criar cliente" });
+  }
 });
 
 app.listen(PORT, () => {

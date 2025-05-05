@@ -22,20 +22,20 @@ client
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS clientes (
-      id SERIAL PRIMARY KEY,
-      nome VARCHAR(100) NOT NULL,
-      email VARCHAR(100) UNIQUE NOT NULL,
-      telefone VARCHAR(15)
+        id SERIAL PRIMARY KEY,
+        nome VARCHAR(100) NOT NULL,
+        email VARCHAR(100) UNIQUE NOT NULL,
+        telefone VARCHAR(15)
       );
 
       CREATE TABLE IF NOT EXISTS enderecos (
-      id SERIAL PRIMARY KEY,
-      cliente_id INT, 
-      rua VARCHAR(100),
-      cidade VARCHAR(50),
-      estado VARCHAR(2),
-      cep VARCHAR(9),
-      CONSTRAINT fk_cliente FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE ON UPDATE CASCADE
+        id SERIAL PRIMARY KEY,
+        cliente_id INT,
+        rua VARCHAR(100),
+        cidade VARCHAR(50),
+        estado VARCHAR(2),
+        cep VARCHAR(9),
+        CONSTRAINT fk_cliente FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE ON UPDATE CASCADE
       );
       `);
 
@@ -108,7 +108,66 @@ app.delete("/clientes/:id", async (req, res) => {
   }
 });
 
-// ------ ENDERECOS --------
+// ---------- ENDEREÇOS ----------
+
+app.get("/enderecos", async (req, res) => {
+  try {
+    const result = await client.query("SELECT * FROM enderecos");
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Ocorreu um erro ao trazer todos os endereços", error);
+    res.status(500).json({ message: "Erro ao trazer todos os endereços" });
+  }
+});
+
+app.get("/enderecos/:id", async (req, res) => {
+  try {
+    const result = await client.query("SELECT * FROM enderecos WHERE id = $1", [
+      req.params.id,
+    ]);
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error("Ocorreu um erro ao trazer o endereço", error);
+    res.status(500).json({ message: "Erro ao trazer o endereço" });
+  }
+});
+
+app.post("/enderecos", async (req, res) => {
+  try {
+    const { cliente_id, rua, cidade, estado, cep } = req.body;
+
+    await client.query(
+      "INSERT INTO enderecos (cliente_id, rua, cidade, estado, cep) VALUES ($1, $2, $3, $4, $5)",
+      [cliente_id, rua, cidade, estado, cep]
+    );
+
+    res.status(201).json({ message: "Endereço criado com sucesso!" });
+  } catch (error) {
+    console.error("Ocorreu um erro ao criar o endereço", error);
+    res.status(500).json({ message: "Erro ao criar o endereço" });
+  }
+});
+
+app.put("/enderecos/:id", async (req, res) => {
+  try {
+    const { cliente_id, rua, cidade, estado, cep } = req.body;
+    await client.query(
+      "UPDATE enderecos SET cliente_id = $1, rua = $2, cidade = $3, estado = $4, cep = $5 WHERE id = $6",
+      [cliente_id, rua, cidade, estado, cep, req.params.id]
+    );
+
+    res.status(200).json({ message: "Endereço atualizado com sucesso" });
+  } catch (error) {
+    console.error("Ocorreu um erro ao editar o endereço", error);
+    res.status(500).json({ message: "Erro ao editar o endereço" });
+  }
+});
+
+app.delete("/enderecos/:id", async (req, res) => {
+  await client.query("DELETE FROM enderecos WHERE id = $1", [req.params.id]);
+  res.json({ message: "Endereço deletado com sucesso" });
+});
 
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);

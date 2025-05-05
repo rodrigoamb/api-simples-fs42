@@ -108,6 +108,8 @@ app.delete("/clientes/:id", async (req, res) => {
   }
 });
 
+// ------ ENDERECOS --------
+
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });

@@ -27,6 +27,16 @@ client
       email VARCHAR(100) UNIQUE NOT NULL,
       telefone VARCHAR(15)
       );
+
+      CREATE TABLE IF NOT EXISTS enderecos (
+      id SERIAL PRIMARY KEY,
+      cliente_id INT, 
+      rua VARCHAR(100),
+      cidade VARCHAR(50),
+      estado VARCHAR(2),
+      cep VARCHAR(9),
+      CONSTRAINT fk_cliente FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE ON UPDATE CASCADE
+      );
       `);
 
     console.log("As tabelas foram criadas");
@@ -35,6 +45,7 @@ client
     console.error("Erro ao conectar com o banco:", error);
   });
 
+// ----- CLIENTES -------
 app.get("/clientes", async (req, res) => {
   const result = await client.query("SELECT * FROM clientes");
 
@@ -83,6 +94,17 @@ app.put("/clientes/:id", async (req, res) => {
   } catch (error) {
     console.error("Ocorreu um erro ao atualizar o cliente", error);
     res.status(500).json({ message: "Erro ao atualizar o cliente" });
+  }
+});
+
+app.delete("/clientes/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    await client.query("DELETE FROM clientes WHERE id = $1", [id]);
+    res.json({ message: "Cliente Deletado" });
+  } catch (error) {
+    console.error("Ocorreu um erro ao deletar o cliente", error);
+    res.status(500).json({ message: "Erro ao deletar o cliente" });
   }
 });
 

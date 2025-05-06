@@ -37,6 +37,11 @@ client
         cep VARCHAR(9),
         CONSTRAINT fk_cliente FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE ON UPDATE CASCADE
       );
+
+      CREATE TABLE IF NOT EXISTS categorias (
+        id SERIAL PRIMARY KEY,
+        nome VARCHAR(100) NOT NULL
+      );
       `);
 
     console.log("As tabelas foram criadas");
@@ -167,6 +172,40 @@ app.put("/enderecos/:id", async (req, res) => {
 app.delete("/enderecos/:id", async (req, res) => {
   await client.query("DELETE FROM enderecos WHERE id = $1", [req.params.id]);
   res.json({ message: "Endereço deletado com sucesso" });
+});
+
+// ------ CATEGORIA -------
+
+app.get("/categorias", async (req, res) => {
+  const result = await client.query("SELECT * FROM categorias");
+  res.json(result.rows);
+});
+
+app.get("/categorias/:id", async (req, res) => {
+  const result = await client.query("SELECT * FROM categorias WHERE id = $1", [
+    req.params.id,
+  ]);
+  res.json(result.rows[0]);
+});
+
+app.post("/categorias", async (req, res) => {
+  const { nome } = req.body;
+  await client.query("INSERT INTO categorias (nome) VALUES ($1)", [nome]);
+  res.status(201).json({ message: "Categoria criada!" });
+});
+
+app.put("/categorias/:id", async (req, res) => {
+  const { nome } = req.body;
+  await client.query("UPDATE categorias SET nome = $1 WHERE id = $2", [
+    nome,
+    req.params.id,
+  ]);
+  res.json({ message: "Categoria atualizada!" });
+});
+
+app.delete("/categorias/:id", async (req, res) => {
+  await client.query("DELETE FROM categorias WHERE id = $1", [req.params.id]);
+  res.json({ message: "Categoria deletada!" });
 });
 
 app.listen(PORT, () => {

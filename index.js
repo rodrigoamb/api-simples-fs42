@@ -259,6 +259,14 @@ app.put("/produtos/:id", async (req, res) => {
   res.status(200).json({ message: "Produto atualizado com sucesso" });
 });
 
+app.delete("/produtos/:id", async (req, res) => {
+  const id = req.params.id;
+
+  await client.query("DELETE FROM produtos WHERE id =$1", [id]);
+
+  res.json({ message: "Produto deletado com sucesso!" });
+});
+
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });

@@ -247,6 +247,18 @@ app.post("/produtos", async (req, res) => {
   res.status(201).json({ message: "Produto criado com sucesso." });
 });
 
+app.put("/produtos/:id", async (req, res) => {
+  const { nome, preco, estoque, categoria_id } = req.body;
+  const id = req.params.id;
+
+  await client.query(
+    "UPDATE produtos SET nome = $1, preco=$2, estoque=$3, categoria_id=$4 WHERE id = $5",
+    [nome, preco, estoque, categoria_id, id]
+  );
+
+  res.status(200).json({ message: "Produto atualizado com sucesso" });
+});
+
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });

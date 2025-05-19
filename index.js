@@ -51,6 +51,14 @@ client
         categoria_id INT,
         CONSTRAINT fk_categoria FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE SET NULL ON UPDATE CASCADE
       );
+
+      CREATE TABLE IF NOT EXISTS pedidos (
+        id SERIAL PRIMARY KEY,
+        cliente_id INT,
+        data_pedido DATE DEFAULT CURRENT_DATE,
+        status VARCHAR(50) DEFAULT 'pendente',
+        CONSTRAINT fk_cliente_pedido FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE ON UPDATE CASCADE
+      );
       `);
 
     console.log("As tabelas foram criadas");
@@ -266,6 +274,8 @@ app.delete("/produtos/:id", async (req, res) => {
 
   res.json({ message: "Produto deletado com sucesso!" });
 });
+
+// ------ PEDIDOS --------
 
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);

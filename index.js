@@ -42,6 +42,15 @@ client
         id SERIAL PRIMARY KEY,
         nome VARCHAR(100) NOT NULL
       );
+
+      CREATE TABLE IF NOT EXISTS produtos (
+        id SERIAL PRIMARY KEY,
+        nome VARCHAR(150) NOT NULL,
+        preco NUMERIC(10,2) NOT NULL,
+        estoque INT DEFAULT 0,
+        categoria_id INT,
+        CONSTRAINT fk_categoria FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE SET NULL ON UPDATE CASCADE
+      );
       `);
 
     console.log("As tabelas foram criadas");
@@ -206,6 +215,36 @@ app.put("/categorias/:id", async (req, res) => {
 app.delete("/categorias/:id", async (req, res) => {
   await client.query("DELETE FROM categorias WHERE id = $1", [req.params.id]);
   res.json({ message: "Categoria deletada!" });
+});
+
+// ------ PRODUTOS --------
+
+app.get("/produtos", async (req, res) => {
+  const result = await client.query(`
+      SELECT p.*, c.nome AS categoria_nome
+      FROM produtos p 
+      LEFT JOIN categorias c ON p.categoria_id = c.id
+    `);
+
+  res.json(result.rows);
+});
+
+app.get("/produtos/:id", async (req, res) => {
+  const result = await client.query("SELECT * FROM produtos WHERE id =$1", [
+    req.params.id,
+  ]);
+  res.json(result.rows[0]);
+});
+
+app.post("/produtos", async (req, res) => {
+  const { nome, preco, estoque, categoria_id } = req.body;
+
+  await client.query(
+    "INSERT INTO produtos (nome, preco, estoque, categoria_id) VALUES ($1, $2, $3, $4)",
+    [nome, preco, estoque, categoria_id]
+  );
+
+  res.status(201).json({ message: "Produto criado com sucesso." });
 });
 
 app.listen(PORT, () => {

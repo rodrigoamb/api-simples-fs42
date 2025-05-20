@@ -305,6 +305,23 @@ app.post("/pedidos", async (req, res) => {
   res.status(201).json({ messagem: "Pedido criado" });
 });
 
+app.put("/pedidos/:id", async (req, res) => {
+  const { cliente_id, status } = req.body;
+
+  await client.query(
+    "UPDATE pedidos SET cliente_id= $1, status= $2 WHERE id = $3",
+    [cliente_id, status, req.params.id]
+  );
+
+  res.status(200).json({ message: "pedido atualizado" });
+});
+
+app.delete("/pedidos/:id", async (req, res) => {
+  await client.query("DELETE from pedidos WHERE id = $1", [req.params.id]);
+
+  res.json({ message: "pedido excluido" });
+});
+
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });

@@ -277,6 +277,34 @@ app.delete("/produtos/:id", async (req, res) => {
 
 // ------ PEDIDOS --------
 
+app.get("/pedidos", async (req, res) => {
+  const result = await client.query(`
+      SELECT p.*, c.nome AS nome_cliente, c.email AS email_cliente 
+      FROM pedidos p
+      LEFT JOIN clientes c ON p.cliente_id = c.id
+    `);
+
+  res.status(200).json(result.rows);
+});
+
+app.get("/pedidos/:id", async (req, res) => {
+  const result = await client.query("SELECT * FROM  pedidos WHERE id = $1", [
+    req.params.id,
+  ]);
+
+  res.status(200).json(result.rows[0]);
+});
+
+app.post("/pedidos", async (req, res) => {
+  const { cliente_id, status } = req.body;
+  await client.query(
+    "INSERT INTO pedidos (cliente_id, status) VALUES ($1, $2)",
+    [cliente_id, status]
+  );
+
+  res.status(201).json({ messagem: "Pedido criado" });
+});
+
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });

@@ -322,6 +322,8 @@ app.delete("/pedidos/:id", async (req, res) => {
   res.json({ message: "pedido excluido" });
 });
 
+// iniciando o servidor
+
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });

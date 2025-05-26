@@ -1,8 +1,14 @@
 const express = require("express");
 const { Client } = require("pg");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const cookieParser = require("cookie-parser");
 
 const app = express();
 const PORT = 3000;
+
+const JWT_SECRET = "seu_segredo_aqui";
+const JWT_EXPIRES_IN = "2h";
 
 app.use(express.json());
 
@@ -59,6 +65,13 @@ client
         status VARCHAR(50) DEFAULT 'pendente',
         CONSTRAINT fk_cliente_pedido FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE ON UPDATE CASCADE
       );
+
+      CREATE TABLE IF NOT EXISTS usuarios (
+        id SERIAL PRIMARY KEY,
+        nome VARCHAR(100) NOT NULL,
+        email VARCHAR(100) UNIQUE NOT NULL,
+        senha VARCHAR(255) NOT NULL
+      );
       `);
 
     console.log("As tabelas foram criadas");
@@ -66,6 +79,51 @@ client
   .catch((error) => {
     console.error("Erro ao conectar com o banco:", error);
   });
+
+// ----- AUTENTICAÇÃO -----
+
+app.post("/usuarios", async (req, res) => {
+  const { nome, email, senha } = req.body;
+
+  const hash = await bcrypt.hash(senha, 10);
+
+  try {
+    await client.query(
+      "INSERT INTO usuarios (nome, email, senha) VALUES ($1, $2, $3)",
+      [nome, email, hash]
+    );
+
+    res.status(201).json({ message: "Usuário criado com sucesso." });
+  } catch (error) {
+    res.status(400).json({ message: "Erro ao criar o usuário" });
+    console.error(error);
+  }
+});
+
+app.post("/login", async (req, res) => {
+  const { email, senha } = req.body;
+
+  const result = await client.query("SELECT * FROM usuarios WHERE email = $1", [
+    email,
+  ]);
+
+  const usuario = result.rows[0];
+
+  if (!usuario) {
+    return res.status(401).json({ message: "usuário não encontrado" });
+  }
+
+  const senhaValida = await bcrypt.compare(senha, usuario.senha);
+
+  if (!senhaValida) {
+    return res.status(401).json({ message: "Senha inválida" });
+  }
+
+  // criar o jwt e responder com armazenamento do jwt nos cookies.
+  const token = jwt.sign({ id: usuario.id, nome: usuario.nome }, JWT_SECRET, {
+    expiresIn: JWT_EXPIRES_IN,
+  });
+});
 
 // ----- CLIENTES -------
 app.get("/clientes", async (req, res) => {

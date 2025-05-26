@@ -123,6 +123,15 @@ app.post("/login", async (req, res) => {
   const token = jwt.sign({ id: usuario.id, nome: usuario.nome }, JWT_SECRET, {
     expiresIn: JWT_EXPIRES_IN,
   });
+
+  res.cookie("token", token, {
+    httpOnly: true,
+    secure: false, //em producao deve ser true.
+    sameSite: "lax",
+    maxAge: 7200000, //2 horas em ms
+  });
+
+  res.json({ message: "login realizado com sucesso." });
 });
 
 // ----- CLIENTES -------

@@ -11,6 +11,7 @@ const JWT_SECRET = "seu_segredo_aqui";
 const JWT_EXPIRES_IN = "2h";
 
 app.use(express.json());
+app.use(cookieParser());
 
 const client = new Client({
   user: "postgres",
@@ -80,6 +81,25 @@ client
     console.error("Erro ao conectar com o banco:", error);
   });
 
+// ------ MIDDLEWARE -------
+
+function autenticarToken(req, res, next) {
+  const token = req.cookies.token;
+
+  if (!token) {
+    return res.status(401).json({ message: "Acesso negado. Faça o login." });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ message: "Token inválido." });
+    }
+
+    req.user = user;
+    next();
+  });
+}
+
 // ----- AUTENTICAÇÃO -----
 
 app.post("/usuarios", async (req, res) => {
@@ -134,14 +154,29 @@ app.post("/login", async (req, res) => {
   res.json({ message: "login realizado com sucesso." });
 });
 
+app.post("/logout", async (req, res) => {
+  res.clearCookie("token");
+  res.json({ message: "Logout realizado com sucesso!" });
+});
+
+app.get("/perfil", autenticarToken, async (req, res) => {
+  const usuarioId = req.user.id;
+  const result = await client.query(
+    "SELECT id, nome, email FROM usuarios WHERE id = $1",
+    [usuarioId]
+  );
+
+  res.json(result.rows[0]);
+});
+
 // ----- CLIENTES -------
-app.get("/clientes", async (req, res) => {
+app.get("/clientes", autenticarToken, async (req, res) => {
   const result = await client.query("SELECT * FROM clientes");
 
   res.json(result.rows);
 });
 
-app.get("/clientes/:id", async (req, res) => {
+app.get("/clientes/:id", autenticarToken, async (req, res) => {
   const ClientId = req.params.id;
 
   const result = await client.query("SELECT * FROM clientes WHERE id = $1", [
@@ -151,7 +186,7 @@ app.get("/clientes/:id", async (req, res) => {
   res.json(result.rows[0]);
 });
 
-app.post("/clientes", async (req, res) => {
+app.post("/clientes", autenticarToken, async (req, res) => {
   const { nome, email, telefone } = req.body;
 
   try {
@@ -167,7 +202,7 @@ app.post("/clientes", async (req, res) => {
   }
 });
 
-app.put("/clientes/:id", async (req, res) => {
+app.put("/clientes/:id", autenticarToken, async (req, res) => {
   const id = req.params.id;
   const { nome, email, telefone } = req.body;
 
@@ -186,7 +221,7 @@ app.put("/clientes/:id", async (req, res) => {
   }
 });
 
-app.delete("/clientes/:id", async (req, res) => {
+app.delete("/clientes/:id", autenticarToken, async (req, res) => {
   try {
     const id = req.params.id;
     await client.query("DELETE FROM clientes WHERE id = $1", [id]);
@@ -199,7 +234,7 @@ app.delete("/clientes/:id", async (req, res) => {
 
 // ---------- ENDEREÇOS ----------
 
-app.get("/enderecos", async (req, res) => {
+app.get("/enderecos", autenticarToken, async (req, res) => {
   try {
     const result = await client.query("SELECT * FROM enderecos");
     res.json(result.rows);
@@ -209,7 +244,7 @@ app.get("/enderecos", async (req, res) => {
   }
 });
 
-app.get("/enderecos/:id", async (req, res) => {
+app.get("/enderecos/:id", autenticarToken, async (req, res) => {
   try {
     const result = await client.query("SELECT * FROM enderecos WHERE id = $1", [
       req.params.id,
@@ -222,7 +257,7 @@ app.get("/enderecos/:id", async (req, res) => {
   }
 });
 
-app.post("/enderecos", async (req, res) => {
+app.post("/enderecos", autenticarToken, async (req, res) => {
   try {
     const { cliente_id, rua, cidade, estado, cep } = req.body;
 
@@ -238,7 +273,7 @@ app.post("/enderecos", async (req, res) => {
   }
 });
 
-app.put("/enderecos/:id", async (req, res) => {
+app.put("/enderecos/:id", autenticarToken, async (req, res) => {
   try {
     const { cliente_id, rua, cidade, estado, cep } = req.body;
     await client.query(
@@ -253,32 +288,32 @@ app.put("/enderecos/:id", async (req, res) => {
   }
 });
 
-app.delete("/enderecos/:id", async (req, res) => {
+app.delete("/enderecos/:id", autenticarToken, async (req, res) => {
   await client.query("DELETE FROM enderecos WHERE id = $1", [req.params.id]);
   res.json({ message: "Endereço deletado com sucesso" });
 });
 
 // ------ CATEGORIA -------
 
-app.get("/categorias", async (req, res) => {
+app.get("/categorias", autenticarToken, async (req, res) => {
   const result = await client.query("SELECT * FROM categorias");
   res.json(result.rows);
 });
 
-app.get("/categorias/:id", async (req, res) => {
+app.get("/categorias/:id", autenticarToken, async (req, res) => {
   const result = await client.query("SELECT * FROM categorias WHERE id = $1", [
     req.params.id,
   ]);
   res.json(result.rows[0]);
 });
 
-app.post("/categorias", async (req, res) => {
+app.post("/categorias", autenticarToken, async (req, res) => {
   const { nome } = req.body;
   await client.query("INSERT INTO categorias (nome) VALUES ($1)", [nome]);
   res.status(201).json({ message: "Categoria criada!" });
 });
 
-app.put("/categorias/:id", async (req, res) => {
+app.put("/categorias/:id", autenticarToken, async (req, res) => {
   const { nome } = req.body;
   await client.query("UPDATE categorias SET nome = $1 WHERE id = $2", [
     nome,
@@ -287,14 +322,14 @@ app.put("/categorias/:id", async (req, res) => {
   res.json({ message: "Categoria atualizada!" });
 });
 
-app.delete("/categorias/:id", async (req, res) => {
+app.delete("/categorias/:id", autenticarToken, async (req, res) => {
   await client.query("DELETE FROM categorias WHERE id = $1", [req.params.id]);
   res.json({ message: "Categoria deletada!" });
 });
 
 // ------ PRODUTOS --------
 
-app.get("/produtos", async (req, res) => {
+app.get("/produtos", autenticarToken, async (req, res) => {
   const result = await client.query(`
       SELECT p.*, c.nome AS categoria_nome
       FROM produtos p 
@@ -304,14 +339,14 @@ app.get("/produtos", async (req, res) => {
   res.json(result.rows);
 });
 
-app.get("/produtos/:id", async (req, res) => {
+app.get("/produtos/:id", autenticarToken, async (req, res) => {
   const result = await client.query("SELECT * FROM produtos WHERE id =$1", [
     req.params.id,
   ]);
   res.json(result.rows[0]);
 });
 
-app.post("/produtos", async (req, res) => {
+app.post("/produtos", autenticarToken, async (req, res) => {
   const { nome, preco, estoque, categoria_id } = req.body;
 
   await client.query(
@@ -322,7 +357,7 @@ app.post("/produtos", async (req, res) => {
   res.status(201).json({ message: "Produto criado com sucesso." });
 });
 
-app.put("/produtos/:id", async (req, res) => {
+app.put("/produtos/:id", autenticarToken, async (req, res) => {
   const { nome, preco, estoque, categoria_id } = req.body;
   const id = req.params.id;
 
@@ -334,7 +369,7 @@ app.put("/produtos/:id", async (req, res) => {
   res.status(200).json({ message: "Produto atualizado com sucesso" });
 });
 
-app.delete("/produtos/:id", async (req, res) => {
+app.delete("/produtos/:id", autenticarToken, async (req, res) => {
   const id = req.params.id;
 
   await client.query("DELETE FROM produtos WHERE id =$1", [id]);
@@ -344,7 +379,7 @@ app.delete("/produtos/:id", async (req, res) => {
 
 // ------ PEDIDOS --------
 
-app.get("/pedidos", async (req, res) => {
+app.get("/pedidos", autenticarToken, async (req, res) => {
   const result = await client.query(`
       SELECT p.*, c.nome AS nome_cliente, c.email AS email_cliente 
       FROM pedidos p
@@ -354,7 +389,7 @@ app.get("/pedidos", async (req, res) => {
   res.status(200).json(result.rows);
 });
 
-app.get("/pedidos/:id", async (req, res) => {
+app.get("/pedidos/:id", autenticarToken, async (req, res) => {
   const result = await client.query("SELECT * FROM  pedidos WHERE id = $1", [
     req.params.id,
   ]);
@@ -362,7 +397,7 @@ app.get("/pedidos/:id", async (req, res) => {
   res.status(200).json(result.rows[0]);
 });
 
-app.post("/pedidos", async (req, res) => {
+app.post("/pedidos", autenticarToken, async (req, res) => {
   const { cliente_id, status } = req.body;
   await client.query(
     "INSERT INTO pedidos (cliente_id, status) VALUES ($1, $2)",
@@ -372,7 +407,7 @@ app.post("/pedidos", async (req, res) => {
   res.status(201).json({ messagem: "Pedido criado" });
 });
 
-app.put("/pedidos/:id", async (req, res) => {
+app.put("/pedidos/:id", autenticarToken, async (req, res) => {
   const { cliente_id, status } = req.body;
 
   await client.query(
@@ -383,7 +418,7 @@ app.put("/pedidos/:id", async (req, res) => {
   res.status(200).json({ message: "pedido atualizado" });
 });
 
-app.delete("/pedidos/:id", async (req, res) => {
+app.delete("/pedidos/:id", autenticarToken, async (req, res) => {
   await client.query("DELETE from pedidos WHERE id = $1", [req.params.id]);
 
   res.json({ message: "pedido excluido" });
